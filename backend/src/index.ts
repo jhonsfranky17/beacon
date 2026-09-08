@@ -1,20 +1,9 @@
-import express, { type Request, type Response } from "express";
-import { sql } from "drizzle-orm";
-import { db } from "./db/client";
+import { createApp } from "./app";
+import { env } from "./config/env";
+import { logger } from "./logger";
 
-const app = express();
-const port = Number(process.env.PORT ?? 4000);
+const app = createApp();
 
-app.get("/health", async (_req: Request, res: Response) => {
-  try {
-    await db.execute(sql`select 1`);
-    res.status(200).json({ status: "ok", db: "connected" });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "unknown error";
-    res.status(503).json({ status: "error", db: "unreachable", error: message });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Beacon backend listening on port ${port}`);
+app.listen(env.PORT, () => {
+  logger.info(`Beacon backend listening on port ${env.PORT.toString()}`);
 });
