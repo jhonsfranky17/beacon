@@ -1,0 +1,21 @@
+{
+  "name": "beacon",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=shared && npm run build --workspace=backend && npm run build --workspace=frontend",
+    "typecheck": "npm run typecheck --workspace=shared && npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "db:generate": "npm run db:generate --workspace=backend",
+    "db:migrate": "npm run db:migrate --workspace=backend"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
