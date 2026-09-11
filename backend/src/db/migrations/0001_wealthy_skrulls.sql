@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "vehicle_visits_open_visit_unique" ON "vehicle_visits" USING btree ("vehicle_id","plant_id") WHERE "vehicle_visits"."current_status" <> 'EXITED';

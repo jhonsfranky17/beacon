@@ -11,6 +11,13 @@ export default defineConfig({
       REDIS_URL: testRedisUrl,
       JWT_SECRET: "test-only-secret-do-not-use-in-prod",
       NODE_ENV: "test",
+      MINIO_ENDPOINT: process.env.MINIO_ENDPOINT ?? "localhost",
+      MINIO_PORT: process.env.MINIO_PORT ?? "9000",
+      MINIO_USE_SSL: process.env.MINIO_USE_SSL ?? "false",
+      MINIO_ROOT_USER: process.env.MINIO_ROOT_USER ?? "beacon",
+      MINIO_ROOT_PASSWORD: process.env.MINIO_ROOT_PASSWORD ?? "change-me-too",
+      // Isolated from the dev bucket so tests never clobber real photos.
+      MINIO_BUCKET: "beacon-test",
     },
     globalSetup: ["./tests/setup/globalSetup.ts"],
     fileParallelism: false,

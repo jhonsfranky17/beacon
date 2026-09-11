@@ -8,6 +8,14 @@ export {
   type NotificationChannel,
   notificationStatusSchema,
   type NotificationStatus,
+  gateInRequestSchema,
+  type GateInRequest,
+  preRegisterRequestSchema,
+  type PreRegisterRequest,
+  visitDtoSchema,
+  type VisitDto,
+  visitEventDtoSchema,
+  type VisitEventDto,
 } from "./visit.js";
 export { normalizeVehicleNo } from "./vehicle.js";
 export {

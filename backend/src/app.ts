@@ -9,6 +9,7 @@ import { logger } from "./logger";
 import { env } from "./config/env";
 import { authRouter } from "./routes/auth";
 import { plantsRouter } from "./routes/plants";
+import { visitsRouter } from "./routes/visits";
 
 export function createApp(): Express {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp(): Express {
 
   app.use("/auth", authRouter);
   app.use("/plants", plantsRouter);
+  app.use("/visits", visitsRouter);
 
   return app;
 }

@@ -50,3 +50,11 @@ export async function createUser(input: CreateUserInput): Promise<{ id: string }
   if (!user) throw new Error("Failed to create test user");
   return { id: user.id };
 }
+
+/** A real, minimal (1x1 transparent) PNG — valid enough for multer's image fileFilter and MinIO. */
+export function tinyPngBuffer(): Buffer {
+  return Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+}

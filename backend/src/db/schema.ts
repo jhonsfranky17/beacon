@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -128,40 +129,52 @@ export const vehicles = pgTable(
   (table) => [uniqueIndex("vehicles_vehicle_no_unique").on(table.vehicleNo)],
 );
 
-export const vehicleVisits = pgTable("vehicle_visits", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  vehicleId: uuid("vehicle_id")
-    .notNull()
-    .references(() => vehicles.id, { onDelete: "restrict" }),
-  plantId: uuid("plant_id")
-    .notNull()
-    .references(() => plants.id, { onDelete: "restrict" }),
-  operationType: visitOperationTypeEnum("operation_type").notNull(),
-  customer: text("customer"),
-  location: text("location"),
-  driverNo: text("driver_no"),
-  // These four timestamps are always server-set at the moment of the
-  // relevant action (build-spec §5.2) — never accept them as client input,
-  // even from a trusted role. Enforced in the API layer, not here.
-  gateInTime: timestamp("gate_in_time", { withTimezone: true }),
-  loadStartTime: timestamp("load_start_time", { withTimezone: true }),
-  loadCompleteTime: timestamp("load_complete_time", { withTimezone: true }),
-  gateOutTime: timestamp("gate_out_time", { withTimezone: true }),
-  currentStatus: visitStatusEnum("current_status")
-    .notNull()
-    .default("NEEDS_TAGGING"),
-  // Frozen at gate-out time (build-spec §5.6); null while the visit is open.
-  computedHaltingCost: numeric("computed_halting_cost", {
-    precision: 12,
-    scale: 2,
-  }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const vehicleVisits = pgTable(
+  "vehicle_visits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    vehicleId: uuid("vehicle_id")
+      .notNull()
+      .references(() => vehicles.id, { onDelete: "restrict" }),
+    plantId: uuid("plant_id")
+      .notNull()
+      .references(() => plants.id, { onDelete: "restrict" }),
+    operationType: visitOperationTypeEnum("operation_type").notNull(),
+    customer: text("customer"),
+    location: text("location"),
+    driverNo: text("driver_no"),
+    // These four timestamps are always server-set at the moment of the
+    // relevant action (build-spec §5.2) — never accept them as client input,
+    // even from a trusted role. Enforced in the API layer, not here.
+    gateInTime: timestamp("gate_in_time", { withTimezone: true }),
+    loadStartTime: timestamp("load_start_time", { withTimezone: true }),
+    loadCompleteTime: timestamp("load_complete_time", { withTimezone: true }),
+    gateOutTime: timestamp("gate_out_time", { withTimezone: true }),
+    currentStatus: visitStatusEnum("current_status")
+      .notNull()
+      .default("NEEDS_TAGGING"),
+    // Frozen at gate-out time (build-spec §5.6); null while the visit is open.
+    computedHaltingCost: numeric("computed_halting_cost", {
+      precision: 12,
+      scale: 2,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    // build-spec §5.2 — at most one OPEN visit per vehicle per plant, so the
+    // pre-registration/gate-entry reconciliation can never fork into two
+    // rows for the same truck cycle. A vehicle may still have any number of
+    // past EXITED visits (repeat trips), which this index ignores.
+    uniqueIndex("vehicle_visits_open_visit_unique")
+      .on(table.vehicleId, table.plantId)
+      .where(sql`${table.currentStatus} <> 'EXITED'`),
+  ],
+);
 
 export const visitEvents = pgTable("visit_events", {
   id: uuid("id").primaryKey().defaultRandom(),
