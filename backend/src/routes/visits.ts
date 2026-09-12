@@ -8,12 +8,13 @@ import {
   type VisitEventDto,
 } from "@beacon/shared";
 import { db } from "../db/client";
-import { visitEvents } from "../db/schema";
+import { plants, visitEvents } from "../db/schema";
 import { authenticate } from "../middleware/authenticate";
 import { requireRole, canAccessPlant } from "../middleware/authorize";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { singlePhotoUpload } from "../middleware/upload";
 import { getPhotoSignedUrl } from "../storage/photos";
+import { broadcastVisitUpdate } from "../realtime/broadcast";
 import type { VisitAction } from "../visits/stateMachine";
 import {
   getVisitById,
@@ -23,7 +24,18 @@ import {
   transitionVisit,
   InvalidTransitionError,
   VisitNotFoundError,
+  type VehicleVisitRow,
 } from "../visits/visitService";
+
+/** Broadcasts the post-write visit state to everyone watching its plant. */
+async function broadcastVisit(visit: VehicleVisitRow, vehicleNo: string): Promise<void> {
+  const [plant] = await db
+    .select({ ageingThresholdHours: plants.ageingThresholdHours })
+    .from(plants)
+    .where(eq(plants.id, visit.plantId))
+    .limit(1);
+  broadcastVisitUpdate(visit, vehicleNo, plant?.ageingThresholdHours ?? 12);
+}
 
 export const visitsRouter = Router();
 
@@ -158,7 +170,9 @@ visitsRouter.post(
         actorUserId: user.id,
         photo: { buffer: req.file.buffer, mimeType: req.file.mimetype },
       });
-      res.status(200).json({ visit: toVisitDto(visit, normalizeVehicleNo(parsed.data.vehicleNo)) });
+      const vehicleNo = normalizeVehicleNo(parsed.data.vehicleNo);
+      await broadcastVisit(visit, vehicleNo);
+      res.status(200).json({ visit: toVisitDto(visit, vehicleNo) });
     } catch (error: unknown) {
       if (error instanceof InvalidTransitionError) {
         res.status(409).json({ error: error.message });
@@ -195,7 +209,9 @@ visitsRouter.post(
       plantId,
       actorUserId: user.id,
     });
-    res.status(200).json({ visit: toVisitDto(visit, normalizeVehicleNo(parsed.data.vehicleNo)) });
+    const vehicleNo = normalizeVehicleNo(parsed.data.vehicleNo);
+    await broadcastVisit(visit, vehicleNo);
+    res.status(200).json({ visit: toVisitDto(visit, vehicleNo) });
   }),
 );
 
@@ -238,6 +254,7 @@ async function handleTransition(
       actorUserId: user.id,
       ...(req.file ? { photo: { buffer: req.file.buffer, mimeType: req.file.mimetype } } : {}),
     });
+    await broadcastVisit(visit, existing.vehicleNo);
     res.status(200).json({ visit: toVisitDto(visit, existing.vehicleNo) });
   } catch (error: unknown) {
     if (error instanceof InvalidTransitionError) {

@@ -81,3 +81,16 @@ export const visitEventDtoSchema = z.object({
   metadata: z.record(z.unknown()).nullable(),
 });
 export type VisitEventDto = z.infer<typeof visitEventDtoSchema>;
+
+/**
+ * build-spec §5.4 ageing flag, computed live — not stored. Used by both the
+ * live-queue read endpoint and the realtime broadcast payload so they never
+ * disagree on shape.
+ */
+export const liveVisitDtoSchema = visitDtoSchema.extend({
+  isAgeing: z.boolean(),
+});
+export type LiveVisitDto = z.infer<typeof liveVisitDtoSchema>;
+
+/** Socket.IO event name — defined once so client and server can't drift. */
+export const VISIT_CHANGED_EVENT = "visit:changed";

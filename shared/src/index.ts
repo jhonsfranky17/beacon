@@ -16,6 +16,9 @@ export {
   type VisitDto,
   visitEventDtoSchema,
   type VisitEventDto,
+  liveVisitDtoSchema,
+  type LiveVisitDto,
+  VISIT_CHANGED_EVENT,
 } from "./visit.js";
 export { normalizeVehicleNo } from "./vehicle.js";
 export {

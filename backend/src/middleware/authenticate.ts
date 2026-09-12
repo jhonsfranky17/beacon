@@ -1,8 +1,4 @@
-import { eq } from "drizzle-orm";
-import type { AuthUser } from "@beacon/shared";
-import { db } from "../db/client";
-import { users } from "../db/schema";
-import { InvalidTokenError, verifyAccessToken } from "../auth/jwt";
+import { resolveAuthUser } from "../auth/resolveUser";
 import { asyncHandler } from "./asyncHandler";
 
 function extractBearerToken(header: string | undefined): string | null {
@@ -19,41 +15,12 @@ export const authenticate = asyncHandler(async (req, res, next) => {
     return;
   }
 
-  let payload;
-  try {
-    payload = verifyAccessToken(token);
-  } catch (error: unknown) {
-    if (error instanceof InvalidTokenError) {
-      res.status(401).json({ error: "Invalid or expired token" });
-      return;
-    }
-    throw error;
-  }
-
-  const rows = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      role: users.role,
-      plantId: users.plantId,
-      isActive: users.isActive,
-    })
-    .from(users)
-    .where(eq(users.id, payload.sub))
-    .limit(1);
-  const row = rows[0];
-
-  if (!row || !row.isActive) {
-    res.status(401).json({ error: "Account not found or inactive" });
+  const authUser = await resolveAuthUser(token);
+  if (!authUser) {
+    res.status(401).json({ error: "Invalid, expired, or inactive account token" });
     return;
   }
 
-  const authUser: AuthUser = {
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    plantId: row.plantId,
-  };
   req.user = authUser;
   next();
 });
